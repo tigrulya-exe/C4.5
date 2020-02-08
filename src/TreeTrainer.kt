@@ -1,3 +1,4 @@
+import jdk.jfr.Frequency
 import models.DataEntity
 import models.TreeNode
 import kotlin.math.log
@@ -32,11 +33,10 @@ class TreeTrainer() {
         return -1 * calculateEntropy(trainingEntities, frequency)
     }
 
-    private fun getAttributeInfo(trainingEntities: List<DataEntity>, attributeIndex: Int) : Double{
+    private fun getAttributeInfo(groups : Map<String, MutableList<DataEntity>>, val entitiesCount : Int) : Double{
         val entitiesCount = trainingEntities.size
-        val classFrequency = getFrequency(trainingEntities, entitiesCount - 1)
         return classFrequency.values.fold(0.0){ acc, freq ->
-            acc + (freq/entitiesCount) * getInfo(trainingEntities)
+            acc + (freq.toDouble()/entitiesCount) * getInfo(trainingEntities)
         }
     }
 
@@ -54,7 +54,7 @@ class TreeTrainer() {
     private fun calculateEntropy(trainingEntities: List<DataEntity>, frequency : Map<String, Int>) : Double{
         val entitiesCount = trainingEntities.size
         return frequency.values.fold(0.0){ acc, freq ->
-            acc + (freq/entitiesCount) * log((freq/entitiesCount).toDouble(), 2.0)
+            acc + (freq.toDouble()/entitiesCount) * log(freq.toDouble()/entitiesCount, 2.0)
         }
     }
 
@@ -73,7 +73,7 @@ class TreeTrainer() {
     }
 
     private fun makeLeaf(treeNode: TreeNode, attributeValue : String, trainingEntities: List<DataEntity>){
-        val frequency = getFrequency(trainingEntities, trainingEntities.size - 1)
+        val frequency = getFrequency(trainingEntities, attributesMap.size - 1)
         val leaf = TreeNode()
         leaf.label = frequency.maxBy { it.value }?.key
         treeNode.addChild(attributeValue, leaf)
@@ -86,11 +86,19 @@ class TreeTrainer() {
             return false
         }
 
-        val info = getInfo(trainingEntities)
+        val classFrequency = getFrequency(trainingEntities, attributesMap.size - 1)
+        if(classFrequency.size == 1){
+            treeNode.label = trainingEntities[0].attributes[attributesMap.size - 1];
+            return true;
+        }
+
+        val info = getInfo(trainingEntities, classFrequency)
         val attributeContexts = ArrayList<AttributeContext>()
 
-        for(i in attributesMap.keys){
-            val attrInfo = getAttributeInfo(trainingEntities, i)
+
+        for(i in attributesMap.keys - 1){
+            val groups = divideByAttribute(trainingEntities, i)
+            val attrInfo = getAttributeInfo(trainingEntities, classFrequency)
             val splitInfo =  getSplitInfo(trainingEntities, i)
             attributeContexts.add(AttributeContext(attrInfo, splitInfo))
         }
@@ -119,6 +127,8 @@ class TreeTrainer() {
 fun main(){
     val entities = parseCsv("test.csv")
     val trainer = TreeTrainer(entities)
+    val head = TreeNode()
+    trainer.train(head, entities)
 
-    trainer.train(TreeNode(), entities)
+    println(head)
 }

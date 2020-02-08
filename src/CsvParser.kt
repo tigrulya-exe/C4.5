@@ -10,9 +10,3 @@ fun parseCsv(fileName: String): List<DataEntity> {
 
     return dataEntities;
 }
-
-
-
-fun main(){
-    parseCsv("test.csv").forEach{ println(it)}
-}
