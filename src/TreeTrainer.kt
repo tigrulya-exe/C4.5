@@ -1,4 +1,3 @@
-import jdk.jfr.Frequency
 import models.DataEntity
 import models.TreeNode
 import kotlin.math.log
@@ -12,8 +11,6 @@ class TreeTrainer() {
         initAttributes(trainingEntities)
     }
 
-    private data class AttributeContext(val attributeInfo : Double, val splitInfos : Double)
-
     private fun initAttributes(trainingEntities: List<DataEntity>) {
         trainingEntities.forEach {
             for (i in it.attributes.indices) {
@@ -23,20 +20,28 @@ class TreeTrainer() {
         }
     }
 
-    private fun getSplitInfo(trainingEntities: List<DataEntity>, attributeIndex: Int) : Double{
-        val frequency = getFrequency(trainingEntities, attributeIndex)
-        return calculateEntropy(trainingEntities, frequency)
+    private fun getSplitInfo(groups : Map<String, MutableList<DataEntity>>, entitiesCount : Int) : Double{
+        return groups.values.fold(0.0){ acc, entities ->
+            val entitiesSize = entities.size.toDouble()
+            acc + (entitiesSize / entitiesCount) * log(entitiesSize/entitiesCount, 2.0)
+        }
     }
 
     private fun getInfo(trainingEntities: List<DataEntity>) : Double{
-        val frequency = getFrequency(trainingEntities, trainingEntities.size - 1)
-        return -1 * calculateEntropy(trainingEntities, frequency)
+        val frequency = getFrequency(trainingEntities, attributesMap.size - 1)
+        val entitiesCount = trainingEntities.size
+
+        println("------------>")
+        return frequency.values.fold(0.0){ acc, freq ->
+            val probability = freq.toDouble()/entitiesCount
+            println(log(probability, 2.0))
+            acc + probability * log(probability, 2.0)
+        }
     }
 
-    private fun getAttributeInfo(groups : Map<String, MutableList<DataEntity>>, val entitiesCount : Int) : Double{
-        val entitiesCount = trainingEntities.size
-        return classFrequency.values.fold(0.0){ acc, freq ->
-            acc + (freq.toDouble()/entitiesCount) * getInfo(trainingEntities)
+    private fun getAttributeInfo(groups : Map<String, MutableList<DataEntity>>, entitiesCount : Int) : Double{
+        return groups.values.fold(0.0){ acc, entities ->
+            acc + (entities.size.toDouble() / entitiesCount) * getInfo(entities)
         }
     }
 
@@ -49,13 +54,6 @@ class TreeTrainer() {
         }
 
         return frequency
-    }
-
-    private fun calculateEntropy(trainingEntities: List<DataEntity>, frequency : Map<String, Int>) : Double{
-        val entitiesCount = trainingEntities.size
-        return frequency.values.fold(0.0){ acc, freq ->
-            acc + (freq.toDouble()/entitiesCount) * log(freq.toDouble()/entitiesCount, 2.0)
-        }
     }
 
     private fun divideByAttribute(trainingEntities: List<DataEntity>, attributeIndex: Int) : Map<String, MutableList<DataEntity>>{
@@ -92,24 +90,18 @@ class TreeTrainer() {
             return true;
         }
 
-        val info = getInfo(trainingEntities, classFrequency)
-        val attributeContexts = ArrayList<AttributeContext>()
+        val info = getInfo(trainingEntities)
+        val gains = ArrayList<Double>()
 
-
-        for(i in attributesMap.keys - 1){
+        for(i in 0 until attributesMap.size - 1){
             val groups = divideByAttribute(trainingEntities, i)
-            val attrInfo = getAttributeInfo(trainingEntities, classFrequency)
-            val splitInfo =  getSplitInfo(trainingEntities, i)
-            attributeContexts.add(AttributeContext(attrInfo, splitInfo))
+            val attrInfo = getAttributeInfo(groups, trainingEntities.size)
+//            val splitInfo =  getSplitInfo(groups, trainingEntities.size)
+            gains.add(info - attrInfo)
         }
 
-        var max = 0.0
-        val indexToDivide= attributeContexts.foldIndexed(0){ index, acc, context ->
-            val gainRatio = (info - context.attributeInfo) / context.splitInfos
-            if(gainRatio > max) {
-                max = gainRatio
-                index
-            } else acc
+        val indexToDivide = gains.foldIndexed(0){ index, indexOfMax, gainRatio ->
+            if(gainRatio > gains[indexOfMax]) index else indexOfMax
         }
 
         divideByAttribute(trainingEntities, indexToDivide).forEach{
