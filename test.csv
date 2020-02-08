@@ -1,0 +1,14 @@
+Sun,Hot,High,Low,No
+Sun,Hot,High,High,No
+Overcast,Hot,High,Low,Yes
+Rain,Sweet,High,Low,Yes
+Rain,Cold,Normal,Low,Yes
+Rain,Cold,Normal,High,No
+Overcast,Cold,Normal,High,Yes
+Sun,Sweet,High,Low,No
+Sun,Cold,Normal,Low,Yes
+Rain,Sweet,Normal,Low,Yes
+Sun,Sweet,Normal,High,Yes
+Overcast,Sweet,High,High,Yes
+Overcast,Hot,Normal,Low,Yes
+Rain,Sweet, High,High,No
