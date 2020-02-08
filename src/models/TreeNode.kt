@@ -1,3 +1,3 @@
 package models
 
-class TreeNode(var children : MutableMap<String, TreeNode>) {}
+data class TreeNode(var children : MutableMap<String, TreeNode>) {}
