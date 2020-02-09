@@ -20,21 +20,18 @@ class TreeTrainer() {
         }
     }
 
-    private fun getSplitInfo(groups : Map<String, MutableList<DataEntity>>, entitiesCount : Int) : Double{
-        return groups.values.fold(0.0){ acc, entities ->
-            val entitiesSize = entities.size.toDouble()
-            acc + (entitiesSize / entitiesCount) * log(entitiesSize/entitiesCount, 2.0)
-        }
-    }
+//    private fun getSplitInfo(groups : Map<String, MutableList<DataEntity>>, entitiesCount : Int) : Double{
+//        return groups.values.fold(0.0){ acc, entities ->
+//            val probability = entities.size.toDouble() / entitiesCount
+//            if(probability == 0.0) acc else acc + probability * log(probability, 2.0)
+//        }
+//    }
 
     private fun getInfo(trainingEntities: List<DataEntity>) : Double{
         val frequency = getFrequency(trainingEntities, attributesMap.size - 1)
-        val entitiesCount = trainingEntities.size
 
-        println("------------>")
-        return frequency.values.fold(0.0){ acc, freq ->
-            val probability = freq.toDouble()/entitiesCount
-            println(log(probability, 2.0))
+        return -1 * frequency.values.fold(0.0){ acc, freq ->
+            val probability = freq.toDouble()/trainingEntities.size
             acc + probability * log(probability, 2.0)
         }
     }
@@ -78,9 +75,7 @@ class TreeTrainer() {
     }
 
     fun train(treeNode: TreeNode?, trainingEntities: List<DataEntity>) : Boolean {
-        treeNode ?: return false
-
-        if(trainingEntities.isEmpty()){
+        if(treeNode == null || trainingEntities.isEmpty()){
             return false
         }
 
@@ -91,20 +86,34 @@ class TreeTrainer() {
         }
 
         val info = getInfo(trainingEntities)
-        val gains = ArrayList<Double>()
+//        val gains = ArrayList<Double>()
+
+        var maxGain = 0.0
+        var indexToDivide = 0
+        var groupsDividedByAttribute : Map<String, MutableList<DataEntity>>? = null
 
         for(i in 0 until attributesMap.size - 1){
             val groups = divideByAttribute(trainingEntities, i)
             val attrInfo = getAttributeInfo(groups, trainingEntities.size)
+            val gain = info - attrInfo
+
+            if(gain > maxGain){
+                maxGain = gain
+                indexToDivide = i
+                groupsDividedByAttribute = groups
+            }
+
+//            gains.add(info - attrInfo)
 //            val splitInfo =  getSplitInfo(groups, trainingEntities.size)
-            gains.add(info - attrInfo)
+//            gains.add((info - attrInfo) / splitInfo)
         }
 
-        val indexToDivide = gains.foldIndexed(0){ index, indexOfMax, gainRatio ->
-            if(gainRatio > gains[indexOfMax]) index else indexOfMax
-        }
+//        val indexToDivide = gains.foldIndexed(0){ index, indexOfMax, gainRatio ->
+//            if(gainRatio > gains[indexOfMax]) index else indexOfMax
+//        }
 
-        divideByAttribute(trainingEntities, indexToDivide).forEach{
+        treeNode.attributeIndex = indexToDivide
+        groupsDividedByAttribute?.forEach{
             val child = TreeNode()
             treeNode.addChild(it.key, child)
             if(!train(child, it.value))
