@@ -67,8 +67,7 @@ class TreeTrainer() {
         return groups
     }
 
-    private fun makeLeaf(treeNode: TreeNode, attributeValue : String, trainingEntities: List<DataEntity>){
-        val frequency = getFrequency(trainingEntities, attributesMap.size - 1)
+    private fun makeLeaf(treeNode: TreeNode, attributeValue : String, frequency: Map<String, Int>){
         val leaf = TreeNode()
         leaf.label = frequency.maxBy { it.value }?.key
         treeNode.addChild(attributeValue, leaf)
@@ -86,10 +85,7 @@ class TreeTrainer() {
         }
 
         val info = getInfo(trainingEntities)
-//        val gains = ArrayList<Double>()
-
         var maxGain = 0.0
-        var indexToDivide = 0
         var groupsDividedByAttribute : Map<String, MutableList<DataEntity>>? = null
 
         for(i in 0 until attributesMap.size - 1){
@@ -99,25 +95,18 @@ class TreeTrainer() {
 
             if(gain > maxGain){
                 maxGain = gain
-                indexToDivide = i
+                treeNode.attributeIndex = i
                 groupsDividedByAttribute = groups
             }
 
-//            gains.add(info - attrInfo)
 //            val splitInfo =  getSplitInfo(groups, trainingEntities.size)
-//            gains.add((info - attrInfo) / splitInfo)
         }
 
-//        val indexToDivide = gains.foldIndexed(0){ index, indexOfMax, gainRatio ->
-//            if(gainRatio > gains[indexOfMax]) index else indexOfMax
-//        }
-
-        treeNode.attributeIndex = indexToDivide
         groupsDividedByAttribute?.forEach{
             val child = TreeNode()
             treeNode.addChild(it.key, child)
             if(!train(child, it.value))
-                makeLeaf(treeNode, it.key, trainingEntities)
+                makeLeaf(treeNode, it.key, classFrequency)
         }
 
         return true
