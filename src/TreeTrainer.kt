@@ -21,7 +21,7 @@ class TreeTrainer() {
     }
 
     private fun getSplitInfo(groups : Map<String, MutableList<DataEntity>>, entitiesCount : Int) : Double{
-        return groups.values.fold(0.0){ acc, entities ->
+        return -1 * groups.values.fold(0.0){ acc, entities ->
             val probability = entities.size.toDouble() / entitiesCount
             if(probability == 0.0) acc else acc + probability * log(probability, 2.0)
         }
